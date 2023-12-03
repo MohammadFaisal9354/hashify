@@ -1,9 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { Algorithm_types } from 'src/types/types';
 
 @Injectable()
 export class HashingService {
-  getHashed(input: string, encryptionKey: string = 'Faisal') {
+  getHashed(input: string, encryptionKey: string = 'Put_Your_Password_Here') {
+    // encryptionKey = crypto.randomBytes(16).toString('hex'); // 16 bytes for AES-128
+    let key = crypto
+      .createHash('sha256')
+      .update(String(encryptionKey))
+      .digest('base64')
+      .substr(0, 32);
+    const keyBuffer = Buffer.from(key, 'hex');
+    let iv = crypto.randomBytes(16);
     const algorithms = [
       ...crypto.getHashes(), // Get hash algorithms
       // ...crypto.getCiphers(),
@@ -29,6 +38,8 @@ export class HashingService {
         result[algorithm + ' (Hash)'] = hash.digest('hex');
       } else if (crypto.getCiphers().includes(algorithm)) {
         const cipher = crypto.createCipher(algorithm, encryptionKey);
+        // const cipher = crypto.createCipheriv(algorithm, keyBuffer, iv);
+
         let encryptedValue = cipher.update(input, 'utf8', 'hex');
         encryptedValue += cipher.final('hex');
         result[algorithm + ' (Encrypted)'] = encryptedValue;
@@ -37,8 +48,44 @@ export class HashingService {
 
     return result;
   }
+
+  hashValue(
+    inputValue: string,
+    algorithm: Algorithm_types,
+    key?: string,
+  ): string {
+    try {
+      const hash = crypto
+        .createHmac(algorithm, key || '')
+        .update(inputValue)
+        .digest('hex');
+      return hash;
+    } catch (error) {
+      console.error(
+        `Error hashing with algorithm ${algorithm}:
+         ${error.message}`,
+      );
+      return error.message;
+    }
+  }
+  supportedAlogorithms(): string[] {
+    return Object.values(Algorithm_types);
+  }
+  // testHashingAlgorithms() {
+  // let i = 1;
+  // const inputValue = 'your_input_data';
+  // const optionalKey = 'your_optional_key';
+
+  // Object.values(Algorithm_types).forEach((algorithm) => {
+  //   const hashValue = this.hashValue(inputValue, algorithm, optionalKey);
+  //   // console.log(`${i++} Algorithm: ${algorithm}, Hash: ${hashValue}`);
+  //   console.log(i++);
+  // });
+  // return 'Done';
+  // }
 }
 
+//////////////////////////////////////////
 // import { Injectable } from '@nestjs/common';
 // import * as crypto from 'crypto';
 
@@ -58,6 +105,8 @@ export class HashingService {
 //     return result;
 //   }
 // }
+
+////////////////////////////////////////////////////
 
 // import { Injectable } from '@nestjs/common';
 // import * as crypto from 'crypto'; // Import crypto as a namespace
